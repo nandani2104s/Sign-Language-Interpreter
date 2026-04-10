@@ -1,31 +1,40 @@
-# Sign Language Recognition System 🖐️
-An AI-powered real-time Sign Language detection system built using Python, MediaPipe, and Scikit-Learn. This project extracts 21 hand landmarks to classify gestures with high precision.
+# Real-Time Sign Language Recognition System 🖐️
+An end-to-end Machine Learning pipeline that translates hand gestures into digital commands in real-time. This project uses a **Random Forest Classifier** trained on geometric hand landmarks extracted via the **MediaPipe Task API**.
 
-## 🚀 Features
-* **Real-time Detection:** 30+ FPS inference on standard CPUs.
-* **High Accuracy:** Achieved **97.22% accuracy** using a Random Forest Classifier.
-* **Geometric Invariance:** Uses normalized landmark coordinates, making it robust to different hand positions and camera distances.
+## 🚀 Project Highlights
+* **Multi-Class Classification:** Recognizes 7 distinct hand gestures.
+* **Optimized Inference:** Achieved **97.22% accuracy** while maintaining real-time performance (30+ FPS).
+* **Robust Feature Extraction:** Uses 21-point 3D hand landmarks, making the system invariant to lighting and background noise.
+* **Version Compatibility:** Custom implementation using MediaPipe Task API to ensure stability on Python 3.12/3.13.
 
-## 📸 Demo
-| Class 0 (Fist) | Class 1 (Open Palm) |
-| :---: | :---: |
-| ![Fist Detection](./image_535b61.jpg) | ![Palm Detection](./image_535b25.jpg) |
-*(Note: Make sure to rename your images or update these paths!)*
+## 📸 Demo & Gestures
+The system is trained to recognize the following 7 classes:
 
-## 🛠️ Tech Stack
-* **Language:** Python 3.12
-* **Computer Vision:** OpenCV, MediaPipe (Task API)
-* **Machine Learning:** Scikit-Learn (Random Forest)
-* **Data Handling:** NumPy, Pickle
+| Class ID | Label | Gesture Description |
+| :--- | :--- | :--- |
+| 0 | **FIST** | All fingers folded |
+| 1 | **PALM** | All fingers extended |
+| 2 | **INDEX** | Only index finger pointing up |
+| 3 | **THUMBS UP** | Thumb extended upward |
+| 4 | **PEACE** | Index and Middle fingers extended |
+| 5 | **OK** | Thumb and Index forming a circle |
+| 6 | **ROCK ON** | Index and Pinky extended |
 
-## 📂 Project Structure
-* `collect_data.py`: Captures raw hand images via webcam.
-* `create_dataset.py`: Extracts 21 geometric landmarks from images.
-* `train_model.py`: Trains the Random Forest model on extracted features.
-* `inference.py`: Real-time detection script.
-* `hand_landmarker.task`: MediaPipe's pre-trained detection model.
+## 🛠️ Technical Stack
+* **Language:** Python 3.12+
+* **Framework:** MediaPipe (Task API - Vision)
+* **ML Model:** Scikit-Learn (Random Forest)
+* **Vision:** OpenCV
+* **Data:** NumPy, Pickle
 
-## ⚙️ How to Run
-1. **Install Dependencies:**
+## 📂 Methodology
+1. **Data Collection:** Captured 100+ frames per class using OpenCV.
+2. **Feature Extraction:** Used MediaPipe to locate 21 hand landmarks ($x, y$ coordinates).
+3. **Normalization:** Shifted all coordinates relative to the hand's origin $(x_i - x_{min}, y_i - y_{min})$ to ensure position-independent recognition.
+4. **Training:** Trained a Random Forest ensemble to map geometric patterns to class labels.
+
+## ⚙️ Setup & Usage
+1. **Clone the repository:**
    ```bash
-   pip install mediapipe opencv-python scikit-learn numpy<2
+   git clone [https://github.com/yourusername/SignLanguageAI.git](https://github.com/yourusername/SignLanguageAI.git)
+   cd SignLanguageAI

@@ -1,53 +1,78 @@
-import os
-import pickle
 import cv2
 import mediapipe as mp
-from mediapipe.tasks import python
-from mediapipe.tasks.python import vision
+import pickle
+import numpy as np
+import os
 
-# --- INITIALIZE THE NEW TASK API ---
-base_options = python.BaseOptions(model_asset_path='hand_landmarker.task')
-options = vision.HandLandmarkerOptions(base_options=base_options, num_hands=1)
-detector = vision.HandLandmarker.create_from_options(options)
+# 1. Initialize MediaPipe
+mp_hands = mp.solutions.hands
+hands = mp_hands.Hands(static_image_mode=False, max_num_hands=1, min_detection_confidence=0.7)
+mp_drawing = mp.solutions.drawing_utils
 
-DATA_DIR = './data'
-data, labels = [], []
+# 2. Setup Data Storage
+data = []
+labels = []
+# Change this label for each gesture you want to record (e.g., '0', '1', '2')
+current_label = '0' 
+required_samples = 100 # How many samples to capture automatically
 
-if not os.path.exists(DATA_DIR):
-    print("Error: 'data' folder not found!")
-else:
-    print("Task API Initialized. Starting landmark extraction...")
-    for dir_ in os.listdir(DATA_DIR):
-        dir_path = os.path.join(DATA_DIR, dir_)
-        if not os.path.isdir(dir_path): continue
+cap = cv2.VideoCapture(0)
+
+print(f"--- STARTING LIVE CAPTURE FOR LABEL: {current_label} ---")
+print("Show your hand to the camera. It will capture automatically.")
+
+while len(data) < required_samples:
+    ret, frame = cap.read()
+    if not ret: break
+
+    frame = cv2.flip(frame, 1)
+    img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    results = hands.process(img_rgb)
+
+    if results.multi_hand_landmarks:
+        for hand_landmarks in results.multi_hand_landmarks:
+            # Draw skeleton so you know it's working
+            mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
             
-        print(f"Processing Class {dir_}...")
-        for img_path in os.listdir(dir_path):
-            img = cv2.imread(os.path.join(dir_path, img_path))
-            if img is None: continue
-                
-            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            # Convert to MediaPipe Image format
-            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=img_rgb)
-            
-            # Detect landmarks
-            detection_result = detector.detect(mp_image)
+            data_aux = []
+            x_ = []
+            y_ = []
 
-            if detection_result.hand_landmarks:
-                hand_landmarks = detection_result.hand_landmarks[0]
-                data_aux, x_, y_ = [], [], []
+            for i in range(len(hand_landmarks.landmark)):
+                x = hand_landmarks.landmark[i].x
+                y = hand_landmarks.landmark[i].y
+                x_.append(x)
+                y_.append(y)
 
-                for landmark in hand_landmarks:
-                    x_.append(landmark.x)
-                    y_.append(landmark.y)
+            for i in range(len(hand_landmarks.landmark)):
+                x = hand_landmarks.landmark[i].x
+                y = hand_landmarks.landmark[i].y
+                data_aux.append(x - min(x_))
+                data_aux.append(y - min(y_))
 
-                for landmark in hand_landmarks:
-                    data_aux.append(float(landmark.x - min(x_)))
-                    data_aux.append(float(landmark.y - min(y_)))
+            # AUTO-CAPTURE LOGIC: If a hand is found, add it to data
+            data.append(data_aux)
+            labels.append(current_label)
 
-                data.append(data_aux)
-                labels.append(dir_)
+    # Visual Feedback
+    cv2.putText(frame, f"PROGRESS: {len(data)}/{required_samples}", (10, 50), 
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    cv2.putText(frame, f"LABEL: {current_label}", (10, 90), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 1)
+    
+    cv2.imshow('LIVE DATA CAPTURE', frame)
 
+    # Break if 'Q' is pressed
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# 3. Final Save
+if len(data) > 0:
     with open('data.pickle', 'wb') as f:
         pickle.dump({'data': data, 'labels': labels}, f)
-    print(f"SUCCESS! Created 'data.pickle' with {len(data)} samples.")
+    print(f"Successfully captured {len(data)} samples for label {current_label}!")
+else:
+    print("No data captured.")
+
+cap.release()
+cv2.destroyAllWindows()
